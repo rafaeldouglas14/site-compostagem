@@ -1,0 +1,532 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Wilbord — IA | Clube de Compostagem e Horta Escolar</title>
+
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Playfair+Display:wght@600&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      --bg:#0c0f0e;
+      --card:#0f1714;
+      --muted:#bfc9c3;
+      --accent:#2f4a40;
+      --ice:#f1f5f4;
+      --glass: rgba(255,255,255,0.03);
+      --radius:16px;
+      --glass-border: rgba(255,255,255,0.04);
+      --soft-shadow: 0 6px 30px rgba(0,0,0,0.6);
+    }
+
+    html,body{
+      height:100%;
+      background:
+        radial-gradient(1200px 400px at 10% 10%, rgba(255,255,255,0.01), transparent 10%),
+        linear-gradient(180deg, #07100c 0%, #08120f 100%);
+      margin:0;
+      font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      color:var(--muted);
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:36px;
+    }
+
+    /* Container card */
+    .container {
+      width: min(980px, 96%);
+      max-width:980px;
+      display:grid;
+      grid-template-columns: 360px 1fr;
+      gap:32px;
+      align-items:start;
+    }
+
+    /* Left column (branding + mascot) */
+    .brand {
+      background: linear-gradient(180deg, rgba(255,255,255,0.02), transparent 30%);
+      border-radius: var(--radius);
+      padding:28px;
+      border: 1px solid var(--glass-border);
+      box-shadow: var(--soft-shadow);
+      display:flex;
+      flex-direction:column;
+      gap:18px;
+      min-height:420px;
+      position:relative;
+      overflow:hidden;
+    }
+
+    /* Mascot circle */
+    .mascot-wrap {
+      display:flex;
+      gap:14px;
+      align-items:center;
+    }
+
+    .mascot {
+      width:72px;
+      height:72px;
+      flex:0 0 72px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      border-radius:18px;
+      background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      border:1px solid rgba(255,255,255,0.03);
+      box-shadow: 0 6px 18px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.02);
+      transform: translateX(-12px);
+      opacity:0;
+      animation: mascotIn 700ms ease forwards 200ms;
+    }
+
+    @keyframes mascotIn {
+      to { transform: translateX(0); opacity:1; }
+    }
+
+    .brand h1{
+      margin:0;
+      font-family: "Playfair Display", serif;
+      font-weight:600;
+      color:var(--ice);
+      font-size:20px;
+      letter-spacing:0.2px;
+      line-height:1.05;
+    }
+
+    .sub {
+      color: #aab7b0;
+      font-size:13px;
+    }
+
+    .brand p.lead {
+      margin-top:6px;
+      color: #c9d5cf;
+      font-size:14px;
+      line-height:1.5;
+    }
+
+    .divider{
+      height:1px;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.02), transparent);
+      margin:6px 0 12px 0;
+      border-radius:2px;
+    }
+
+    .info-grid{
+      display:grid;
+      grid-template-columns:1fr;
+      gap:10px;
+      margin-top:auto;
+    }
+
+    .chip{
+      background:var(--glass);
+      border:1px solid rgba(255,255,255,0.02);
+      padding:10px 12px;
+      border-radius:12px;
+      font-size:13px;
+      color:var(--muted);
+      display:flex;
+      gap:10px;
+      align-items:center;
+    }
+
+    /* Right column (chat) */
+    .chat-card{
+      background: linear-gradient(180deg, rgba(255,255,255,0.01), transparent 40%), var(--card);
+      border-radius: var(--radius);
+      padding:18px;
+      border:1px solid var(--glass-border);
+      box-shadow: var(--soft-shadow);
+      display:flex;
+      flex-direction:column;
+      min-height:420px;
+    }
+
+    .chat-header{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      margin-bottom:10px;
+    }
+
+    .title{
+      font-family: "Playfair Display", serif;
+      font-size:18px;
+      color:var(--ice);
+      margin:0;
+    }
+
+    .subtitle{
+      font-size:13px;
+      color:#aab7b0;
+      margin:0;
+    }
+
+    /* messages area */
+    .messages{
+      flex:1 1 auto;
+      overflow:auto;
+      padding:16px;
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+      scroll-behavior:smooth;
+      border-radius:12px;
+      background: linear-gradient(180deg, rgba(0,0,0,0.01), transparent 30%);
+      border:1px solid rgba(255,255,255,0.02);
+    }
+
+    .msg{
+      max-width:78%;
+      padding:12px 14px;
+      border-radius:12px;
+      font-size:14px;
+      line-height:1.45;
+      box-shadow: 0 4px 18px rgba(0,0,0,0.55);
+      opacity:0;
+      transform: translateY(8px) scale(0.995);
+      animation: msgIn 380ms ease forwards;
+    }
+
+    @keyframes msgIn {
+      to { opacity:1; transform: translateY(0) scale(1); }
+    }
+
+    .msg.bot{
+      align-self:flex-start;
+      background: linear-gradient(180deg, rgba(20,36,28,0.9), rgba(8,18,12,0.9));
+      border:1px solid rgba(255,255,255,0.02);
+      color: #dbeee2;
+    }
+
+    .msg.user{
+      align-self:flex-end;
+      background:linear-gradient(180deg, rgba(240,246,243,0.03), rgba(255,255,255,0.02));
+      border:1px solid rgba(255,255,255,0.04);
+      color:var(--ice);
+    }
+
+    /* input area */
+    .input-area{
+      display:flex;
+      gap:10px;
+      padding-top:14px;
+      align-items:center;
+    }
+
+    .input-area input{
+      flex:1;
+      background:transparent;
+      border:1px solid rgba(255,255,255,0.03);
+      padding:12px 14px;
+      border-radius:12px;
+      color: var(--ice);
+      outline:none;
+      font-size:14px;
+      transition: box-shadow .18s ease, border-color .18s ease;
+    }
+
+    .input-area input:focus{
+      box-shadow: 0 6px 24px rgba(46,77,59,0.06);
+      border-color: rgba(255,255,255,0.06);
+    }
+
+    .btn{
+      background: transparent;
+      border: 1px solid rgba(255,255,255,0.06);
+      color:var(--ice);
+      padding:10px 14px;
+      border-radius:10px;
+      cursor:pointer;
+      font-weight:600;
+      font-size:13px;
+      transition: transform .14s ease, background .14s ease, border-color .14s ease;
+    }
+
+    .btn:hover{
+      transform: translateY(-3px);
+      border-color: rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.02);
+    }
+
+    .small{
+      font-size:12px;
+      color:#9ea99f;
+    }
+
+    /* mascot watermark subtle in background */
+    .watermark {
+      position:absolute;
+      right:-50px;
+      bottom:-40px;
+      width:320px;
+      height:320px;
+      opacity:0.035;
+      pointer-events:none;
+      filter: blur(0.4px);
+    }
+
+    /* responsive */
+    @media (max-width:920px){
+      .container{ grid-template-columns: 1fr; }
+      .mascot { width:60px; height:60px; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container" role="main" aria-labelledby="wilbordTitle">
+    <!-- LEFT: branding + mascot -->
+    <aside class="brand" aria-label="Wilbord - branding">
+      <div class="mascot-wrap" style="align-items:center;">
+        <div class="mascot" aria-hidden="true" title="Mascote Gambá">
+          <!-- simple minimal gambá SVG in branco gelo -->
+          <svg viewBox="0 0 120 120" width="52" height="52" xmlns="http://www.w3.org/2000/svg" fill="none" aria-hidden="true">
+            <defs>
+              <linearGradient id="g1" x1="0" x2="1">
+                <stop offset="0" stop-color="#ffffff" stop-opacity="0.98"/>
+                <stop offset="1" stop-color="#f1f5f4" stop-opacity="0.95"/>
+              </linearGradient>
+            </defs>
+            <!-- stylized skunk/gambá silhouette: simple curves for elegance -->
+            <path d="M18 68c2-14 18-28 38-28 14 0 28 6 34 16 3 5 4 9 4 12 0 10-9 18-20 18H34c-8 0-14-6-16-18z" fill="url(#g1)"/>
+            <path d="M54 36c8-8 20-10 28-8 4 1 6 2 6 6 0 6-6 8-10 10-8 4-24 4-34 0-6-2-8-8-4-14 4-6 12-10 18-10 6 0 8 2 10 6z" fill="url(#g1)"/>
+            <circle cx="64" cy="40" r="3.2" fill="#0c0f0e"/>
+          </svg>
+        </div>
+
+        <div style="display:flex;flex-direction:column;">
+          <h1 id="wilbordTitle">Wilbord</h1>
+          <div class="sub">Assistente ecológico institucional</div>
+        </div>
+      </div>
+
+      <div class="divider" aria-hidden="true"></div>
+
+      <p class="lead">Wilbord é a inteligência do Clube de Compostagem e Horta Escolar. Responde perguntas técnicas, orienta sobre compostagem, irrigação e práticas sustentáveis de forma clara e formal.</p>
+
+      <div class="info-grid" role="list">
+        <div class="chip" role="listitem">
+          <strong style="color:var(--ice)">Formalidade</strong>
+          <span class="small" style="margin-left:auto">Tom institucional</span>
+        </div>
+
+        <div class="chip" role="listitem">
+          <strong style="color:var(--ice)">Conectividade</strong>
+          <span class="small" style="margin-left:auto">n8n · RAG · Memória</span>
+        </div>
+
+        <div class="chip" role="listitem">
+          <strong style="color:var(--ice)">Missão</strong>
+          <span class="small" style="margin-left:auto">Educar & Sustentar</span>
+        </div>
+      </div>
+
+      <!-- subtle watermark gambá behind -->
+      <svg class="watermark" viewBox="0 0 300 300" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <g fill="#ffffff">
+          <path d="M30 170c18-38 60-64 110-60 40 3 75 26 85 56 5 16-4 38-26 48-34 14-100 16-154-44z"/>
+        </g>
+      </svg>
+    </aside>
+
+    <!-- RIGHT: chat -->
+    <section class="chat-card" aria-label="Chat com Wilbord">
+      <div class="chat-header" role="banner" aria-hidden="false">
+        <div style="width:48px;height:48px;border-radius:8px;background:transparent;display:flex;align-items:center;justify-content:center;">
+          <!-- small mascot icon -->
+          <svg width="36" height="36" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <path d="M18 68c2-14 18-28 38-28 14 0 28 6 34 16 3 5 4 9 4 12 0 10-9 18-20 18H34c-8 0-14-6-16-18z" fill="#f1f5f4"/>
+            <path d="M54 36c8-8 20-10 28-8 4 1 6 2 6 6 0 6-6 8-10 10-8 4-24 4-34 0-6-2-8-8-4-14 4-6 12-10 18-10 6 0 8 2 10 6z" fill="#0c0f0e"/>
+          </svg>
+        </div>
+
+        <div style="display:flex;flex-direction:column;">
+          <div class="title">Wilbord — Assistente</div>
+          <div class="subtitle">Clube de Compostagem e Horta Escolar · Tom formal</div>
+        </div>
+      </div>
+
+      <div id="messages" class="messages" role="log" aria-live="polite" aria-relevant="additions">
+        <!-- initial message -->
+        <div class="msg bot" data-ts="{{now}}">
+          Olá. Sou <strong>Wilbord</strong>. Posso ajudar com compostagem, plantio, irrigação e práticas sustentáveis. Faça sua pergunta de forma clara e objetiva.
+        </div>
+      </div>
+
+      <div class="input-area" role="region" aria-label="Enviar mensagem">
+        <input id="inputMessage" type="text" placeholder="Escreva sua pergunta..." aria-label="Mensagem para Wilbord" autocomplete="off" />
+        <button id="sendBtn" class="btn" aria-label="Enviar mensagem">Enviar</button>
+      </div>
+    </section>
+  </div>
+
+  <!-- SCRIPT: comunicação com n8n + UI behavior -->
+  <script>
+    (function(){
+      // Atualize este webhook para o endpoint do seu agente de IA
+      const WEBHOOK = 'https://seu-agente-de-ia.com/webhook'; // Substitua pelo URL real
+
+      const messagesEl = document.getElementById('messages');
+      const inputEl = document.getElementById('inputMessage');
+      const sendBtn = document.getElementById('sendBtn');
+
+      // small util: append message bubble
+      function appendBubble(text, who='bot'){
+        const div = document.createElement('div');
+        div.className = 'msg ' + (who==='user' ? 'user' : 'bot');
+        // allow HTML for small emphasis but sanitize minimal approach:
+        div.innerHTML = String(text).replace(/\n/g,'<br/>');
+        messagesEl.appendChild(div);
+        messagesEl.scrollTop = messagesEl.scrollHeight;
+        return div;
+      }
+
+      // typing simulation for bot answer
+      async function showTypingAndReplace(tempEl, fullText){
+        // remove 'Digitando...' immediately and replace with typing animation
+        // create new empty bubble
+        const bubble = document.createElement('div');
+        bubble.className = 'msg bot';
+        messagesEl.insertBefore(bubble, tempEl.nextSibling);
+        tempEl.remove();
+        messagesEl.scrollTop = messagesEl.scrollHeight;
+
+        // type progressively
+        let idx = 0;
+        const speed = 18; // ms per char (elegant pace)
+        return new Promise(resolve => {
+          const t = setInterval(()=> {
+            idx++;
+            bubble.innerHTML = escapeHtml(fullText.slice(0, idx)).replace(/\n/g,'<br/>');
+            messagesEl.scrollTop = messagesEl.scrollHeight;
+            if(idx >= fullText.length){
+              clearInterval(t);
+              resolve(bubble);
+            }
+          }, speed);
+        });
+      }
+
+      // Escape to avoid accidental HTML injection
+      function escapeHtml(unsafe) {
+        return unsafe
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;");
+      }
+
+      async function sendMessage(){
+        const text = inputEl.value.trim();
+        if(!text) return;
+        // append user bubble
+        appendBubble(escapeHtml(text), 'user');
+        inputEl.value = '';
+        inputEl.disabled = true;
+        sendBtn.disabled = true;
+
+        // temporary 'typing' bubble
+        const thinking = appendBubble('Wilbord está formulando uma resposta...', 'bot');
+
+        try {
+          const res = await fetch(WEBHOOK, {
+            method:'POST',
+            headers: { 'Content-Type':'application/json' },
+            body: JSON.stringify({ pergunta: text })
+          });
+
+          // esperar 1s mínimo para suavizar a experiência
+          const minDelay = new Promise(r => setTimeout(r, 600));
+
+          if(!res.ok){
+            await minDelay;
+            thinking.remove();
+            appendBubble('⚠️ Erro: não foi possível alcançar o servidor. Por favor, tente novamente mais tarde.', 'bot');
+            inputEl.disabled = false;
+            sendBtn.disabled = false;
+            inputEl.focus();
+            return;
+          }
+
+          // some n8n setups return { "data": { "resposta":"..." } } or { "resposta": "..." }
+          const json = await res.json().catch(()=> ({}));
+          await minDelay;
+
+          // find response in likely fields
+          const reply = (json?.resposta) || (json?.data?.resposta) || (json?.data?.response) || (json?.response) || (json?.data) || (typeof json === 'string' ? json : null) || 'Desculpe — sem resposta encontrada.';
+          const replyText = (typeof reply === 'object') ? JSON.stringify(reply) : String(reply);
+
+          // show typed reply
+          await showTypingAndReplace(thinking, replyText);
+
+        } catch (err) {
+          thinking.remove();
+          appendBubble('⚠️ Erro de conexão. Verifique seu webhook e tente novamente.', 'bot');
+          console.error(err);
+        } finally {
+          inputEl.disabled = false;
+          sendBtn.disabled = false;
+          inputEl.focus();
+        }
+      }
+
+      // send on enter or click
+      sendBtn.addEventListener('click', sendMessage);
+      inputEl.addEventListener('keypress', (e) => {
+        if(e.key === 'Enter') sendMessage();
+      });
+
+      // small accessibility: focus input on load
+      window.addEventListener('load', ()=> { setTimeout(()=> inputEl.focus(), 320); });
+
+      // initially scroll to bottom (in case)
+      setTimeout(()=> { messagesEl.scrollTop = messagesEl.scrollHeight; }, 300);
+
+    })();
+  </script>
